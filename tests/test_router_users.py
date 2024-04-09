@@ -140,7 +140,9 @@ class TestUpdateMe:
         else:
             assert response.status_code == status.HTTP_400_BAD_REQUEST
             data = cast(Dict[str, Any], response.json())
-            assert data["detail"] == ErrorCode.UPDATE_USER_EMAIL_ALREADY_EXISTS
+            assert (
+                data["detail"] == ErrorCode.UPDATE_USER_EMAIL_OR_USERNAME_ALREADY_EXISTS
+            )
 
     async def test_invalid_password(
         self,
@@ -619,7 +621,7 @@ class TestUpdateUser:
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = cast(Dict[str, Any], response.json())
-        assert data["detail"] == ErrorCode.UPDATE_USER_EMAIL_ALREADY_EXISTS
+        assert data["detail"] == ErrorCode.UPDATE_USER_EMAIL_OR_USERNAME_ALREADY_EXISTS
 
     async def test_invalid_password_verified_superuser(
         self,

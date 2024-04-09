@@ -87,7 +87,7 @@ class TestLogin:
         user_manager,
     ):
         client, _ = test_app_client
-        data = {"username": "king.arthur@camelot.bt"}
+        data = {"username": "kingarthur"}
         response = await client.post(path, data=data)
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         assert user_manager.on_after_login.called is False
@@ -99,7 +99,7 @@ class TestLogin:
         user_manager,
     ):
         client, _ = test_app_client
-        data = {"username": "lancelot@camelot.bt", "password": "guinevere"}
+        data = {"username": "lancelot", "password": "guinevere"}
         response = await client.post(path, data=data)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = cast(Dict[str, Any], response.json())
@@ -113,26 +113,24 @@ class TestLogin:
         user_manager,
     ):
         client, _ = test_app_client
-        data = {"username": "king.arthur@camelot.bt", "password": "percival"}
+        data = {"username": "kingarthur", "password": "percival"}
         response = await client.post(path, data=data)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = cast(Dict[str, Any], response.json())
         assert data["detail"] == ErrorCode.LOGIN_BAD_CREDENTIALS
         assert user_manager.on_after_login.called is False
 
-    @pytest.mark.parametrize(
-        "email", ["king.arthur@camelot.bt", "King.Arthur@camelot.bt"]
-    )
+    @pytest.mark.parametrize("username", ["kingarthur", "KingArthur"])
     async def test_valid_credentials_unverified(
         self,
         path,
-        email,
+        username,
         test_app_client: Tuple[httpx.AsyncClient, bool],
         user_manager,
         user: UserModel,
     ):
         client, requires_verification = test_app_client
-        data = {"username": email, "password": "guinevere"}
+        data = {"username": username, "password": "guinevere"}
         response = await client.post(path, data=data)
         if requires_verification:
             assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -147,17 +145,17 @@ class TestLogin:
             }
             assert user_manager.on_after_login.called is True
 
-    @pytest.mark.parametrize("email", ["lake.lady@camelot.bt", "Lake.Lady@camelot.bt"])
+    @pytest.mark.parametrize("username", ["lakelady", "LakeLady"])
     async def test_valid_credentials_verified(
         self,
         path,
-        email,
+        username,
         test_app_client: Tuple[httpx.AsyncClient, bool],
         user_manager,
         verified_user: UserModel,
     ):
         client, _ = test_app_client
-        data = {"username": email, "password": "excalibur"}
+        data = {"username": username, "password": "excalibur"}
         response = await client.post(path, data=data)
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {
@@ -176,7 +174,7 @@ class TestLogin:
         user_manager,
     ):
         client, _ = test_app_client
-        data = {"username": "percival@camelot.bt", "password": "angharad"}
+        data = {"username": "percival", "password": "angharad"}
         response = await client.post(path, data=data)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = cast(Dict[str, Any], response.json())

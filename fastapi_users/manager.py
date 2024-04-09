@@ -1,3 +1,4 @@
+import re
 import uuid
 from typing import Any, Dict, Generic, Optional, Union
 
@@ -91,6 +92,40 @@ class BaseUserManager(Generic[models.UP, models.ID]):
 
         return user
 
+    async def get_by_username(self, user_username: str) -> models.UP:
+        """
+        Get a user by username.
+
+        :param user_username: Username of the user to retrieve.
+        :raises UserNotExists: The user does not exist.
+        :return: A user.
+        """
+        user = await self.user_db.get_by_username(user_username)
+
+        if user is None:
+            raise exceptions.UserNotExists()
+
+        return user
+
+    async def _generate_username(self, email: str) -> str:
+        """
+        Generate username for oauth created account.
+
+        :param email: account_email of associated account.
+        :return: string generated from email.
+        """
+        email_user_string = email.split("@")[0]
+        domain = email.split("@")[1]
+        subdomain, tld = domain.split(".")
+
+        username = re.sub(r"[^a-zA-Z0-9]", "", email_user_string)
+
+        user = await self.user_db.get_by_username(username)
+        if user is None:
+            return username
+        else:
+            return username + subdomain + tld
+
     async def get_by_oauth_account(self, oauth: str, account_id: str) -> models.UP:
         """
         Get a user by OAuth account.
@@ -123,13 +158,15 @@ class BaseUserManager(Generic[models.UP, models.ID]):
         will be ignored during the creation, defaults to False.
         :param request: Optional FastAPI request that
         triggered the operation, defaults to None.
-        :raises UserAlreadyExists: A user already exists with the same e-mail.
+        :raises UserAlreadyExists: A user already exists with the same e-mail
+        or username.
         :return: A new user.
         """
         await self.validate_password(user_create.password, user_create)
 
-        existing_user = await self.user_db.get_by_email(user_create.email)
-        if existing_user is not None:
+        existing_user_email = await self.user_db.get_by_email(user_create.email)
+        existing_user_username = await self.user_db.get_by_email(user_create.username)
+        if existing_user_email is not None or existing_user_username is not None:
             raise exceptions.UserAlreadyExists()
 
         user_dict = (
@@ -211,6 +248,7 @@ class BaseUserManager(Generic[models.UP, models.ID]):
                 password = self.password_helper.generate()
                 user_dict = {
                     "email": account_email,
+                    "username": self._generate_username(account_email),
                     "hashed_password": self.password_helper.hash(password),
                     "is_verified": is_verified_by_default,
                 }
@@ -637,14 +675,14 @@ class BaseUserManager(Generic[models.UP, models.ID]):
         self, credentials: OAuth2PasswordRequestForm
     ) -> Optional[models.UP]:
         """
-        Authenticate and return a user following an email and a password.
+        Authenticate and return a user following an username and a password.
 
         Will automatically upgrade password hash if necessary.
 
         :param credentials: The user credentials.
         """
         try:
-            user = await self.get_by_email(credentials.username)
+            user = await self.get_by_username(credentials.username)
         except exceptions.UserNotExists:
             # Run the hasher to mitigate timing attack
             # Inspired from Django: https://code.djangoproject.com/ticket/20760

@@ -102,6 +102,34 @@ class TestGetByEmail:
 
 @pytest.mark.asyncio
 @pytest.mark.manager
+class TestGetByUsername:
+    async def test_not_existing_user(self, user_manager: UserManagerMock[UserModel]):
+        with pytest.raises(UserNotExists):
+            await user_manager.get_by_username("lancelot")
+
+    async def test_existing_user(
+        self, user_manager: UserManagerMock[UserModel], user: UserModel
+    ):
+        retrieved_user = await user_manager.get_by_username(user.username)
+        assert retrieved_user.id == user.id
+
+
+@pytest.mark.asyncio
+@pytest.mark.manager
+class TestGenerateUser:
+    async def test_not_existing_user(self, user_manager: UserManagerMock[UserModel]):
+        username = await user_manager._generate_username("lancelott@camelot.bt")
+        assert username == "lancelott"
+
+    async def test_existing_user(
+        self, user_manager: UserManagerMock[UserModel], user: UserModel
+    ):
+        username = await user_manager._generate_username(user.email)
+        assert username == "kingarthurcamelotbt"
+
+
+@pytest.mark.asyncio
+@pytest.mark.manager
 class TestGetByOAuthAccount:
     async def test_not_existing_user(
         self, user_manager_oauth: UserManagerMock[UserModel]
@@ -123,21 +151,28 @@ class TestGetByOAuthAccount:
 @pytest.mark.manager
 class TestCreateUser:
     @pytest.mark.parametrize(
-        "email", ["king.arthur@camelot.bt", "King.Arthur@camelot.bt"]
+        "email, username",
+        [
+            ("king.arthur@camelot.bt", "kingarthur"),
+            ("King.Arthur@camelot.bt", "KingArthur"),
+        ],
     )
     async def test_existing_user(
-        self, email: str, user_manager: UserManagerMock[UserModel]
+        self, email: str, username: str, user_manager: UserManagerMock[UserModel]
     ):
-        user = UserCreate(email=email, password="guinevere")
+        user = UserCreate(email=email, username=username, password="guinevere")
         with pytest.raises(UserAlreadyExists):
             await user_manager.create(user)
-        assert user_manager.on_after_register.called is False
+        assert not user_manager.on_after_register.called
 
-    @pytest.mark.parametrize("email", ["lancelot@camelot.bt", "Lancelot@camelot.bt"])
+    @pytest.mark.parametrize(
+        "email, username",
+        [("lancelot@camelot.bt", "lancelot"), ("Lancelot@camelot.bt", "Lancelot")],
+    )
     async def test_regular_user(
-        self, email: str, user_manager: UserManagerMock[UserModel]
+        self, email: str, username: str, user_manager: UserManagerMock[UserModel]
     ):
-        user = UserCreate(email=email, password="guinevere")
+        user = UserCreate(email=email, username=username, password="guinevere")
         created_user = await user_manager.create(user)
         assert type(created_user) == UserModel
 
@@ -148,7 +183,10 @@ class TestCreateUser:
         self, user_manager: UserManagerMock[UserModel], safe: bool, result: bool
     ):
         user = UserCreate(
-            email="lancelot@camelot.b", password="guinevere", is_superuser=True
+            email="lancelot@camelot.b",
+            username="lancelot",
+            password="guinevere",
+            is_superuser=True,
         )
         created_user = await user_manager.create(user, safe)
         assert type(created_user) == UserModel
@@ -161,7 +199,10 @@ class TestCreateUser:
         self, user_manager: UserManagerMock[UserModel], safe: bool, result: bool
     ):
         user = UserCreate(
-            email="lancelot@camelot.b", password="guinevere", is_active=False
+            email="lancelot@camelot.b",
+            username="lancelot",
+            password="guinevere",
+            is_active=False,
         )
         created_user = await user_manager.create(user, safe)
         assert type(created_user) == UserModel
@@ -662,7 +703,7 @@ class TestAuthenticate:
         ],
         user_manager: UserManagerMock[UserModel],
     ):
-        form = create_oauth2_password_request_form("lancelot@camelot.bt", "guinevere")
+        form = create_oauth2_password_request_form("lancelot", "guinevere")
         user = await user_manager.authenticate(form)
         assert user is None
 
@@ -673,7 +714,7 @@ class TestAuthenticate:
         ],
         user_manager: UserManagerMock[UserModel],
     ):
-        form = create_oauth2_password_request_form("king.arthur@camelot.bt", "percival")
+        form = create_oauth2_password_request_form("kingarthur", "percival")
         user = await user_manager.authenticate(form)
         assert user is None
 
@@ -684,12 +725,10 @@ class TestAuthenticate:
         ],
         user_manager: UserManagerMock[UserModel],
     ):
-        form = create_oauth2_password_request_form(
-            "king.arthur@camelot.bt", "guinevere"
-        )
+        form = create_oauth2_password_request_form("kingarthur", "guinevere")
         user = await user_manager.authenticate(form)
         assert user is not None
-        assert user.email == "king.arthur@camelot.bt"
+        assert user.username == "kingarthur"
 
     async def test_upgrade_password_hash(
         self,
@@ -705,12 +744,10 @@ class TestAuthenticate:
         verify_and_update_password_patch.return_value = (True, "updated_hash")
         update_spy = mocker.spy(user_manager.user_db, "update")
 
-        form = create_oauth2_password_request_form(
-            "king.arthur@camelot.bt", "guinevere"
-        )
+        form = create_oauth2_password_request_form("kingarthur", "guinevere")
         user = await user_manager.authenticate(form)
         assert user is not None
-        assert user.email == "king.arthur@camelot.bt"
+        assert user.username == "kingarthur"
         assert update_spy.called is True
 
 

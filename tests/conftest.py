@@ -45,6 +45,7 @@ IDType = UUID4
 @dataclasses.dataclass
 class UserModel(models.UserProtocol[IDType]):
     email: str
+    username: str
     hashed_password: str
     id: IDType = dataclasses.field(default_factory=uuid.uuid4)
     is_active: bool = True
@@ -110,6 +111,7 @@ class UserManagerOAuth(BaseTestUserManager[UserOAuthModel]):
 
 class UserManagerMock(BaseTestUserManager[models.UP]):
     get_by_email: MagicMock
+    get_by_username: MagicMock
     request_verify: MagicMock
     verify: MagicMock
     forgot_password: MagicMock
@@ -166,6 +168,7 @@ def secret(request) -> SecretType:
 def user() -> UserModel:
     return UserModel(
         email="king.arthur@camelot.bt",
+        username="kingarthur",
         hashed_password=guinevere_password_hash,
     )
 
@@ -176,6 +179,7 @@ def user_oauth(
 ) -> UserOAuthModel:
     return UserOAuthModel(
         email="king.arthur@camelot.bt",
+        username="kingarthur",
         hashed_password=guinevere_password_hash,
         oauth_accounts=[oauth_account1, oauth_account2],
     )
@@ -185,6 +189,7 @@ def user_oauth(
 def inactive_user() -> UserModel:
     return UserModel(
         email="percival@camelot.bt",
+        username="percival",
         hashed_password=angharad_password_hash,
         is_active=False,
     )
@@ -194,6 +199,7 @@ def inactive_user() -> UserModel:
 def inactive_user_oauth(oauth_account3: OAuthAccountModel) -> UserOAuthModel:
     return UserOAuthModel(
         email="percival@camelot.bt",
+        username="percival",
         hashed_password=angharad_password_hash,
         is_active=False,
         oauth_accounts=[oauth_account3],
@@ -204,6 +210,7 @@ def inactive_user_oauth(oauth_account3: OAuthAccountModel) -> UserOAuthModel:
 def verified_user() -> UserModel:
     return UserModel(
         email="lake.lady@camelot.bt",
+        username="lakelady",
         hashed_password=excalibur_password_hash,
         is_active=True,
         is_verified=True,
@@ -214,6 +221,7 @@ def verified_user() -> UserModel:
 def verified_user_oauth(oauth_account4: OAuthAccountModel) -> UserOAuthModel:
     return UserOAuthModel(
         email="lake.lady@camelot.bt",
+        username="lakelady",
         hashed_password=excalibur_password_hash,
         is_active=False,
         oauth_accounts=[oauth_account4],
@@ -224,6 +232,7 @@ def verified_user_oauth(oauth_account4: OAuthAccountModel) -> UserOAuthModel:
 def superuser() -> UserModel:
     return UserModel(
         email="merlin@camelot.bt",
+        username="merlin",
         hashed_password=viviane_password_hash,
         is_superuser=True,
     )
@@ -233,6 +242,7 @@ def superuser() -> UserModel:
 def superuser_oauth() -> UserOAuthModel:
     return UserOAuthModel(
         email="merlin@camelot.bt",
+        username="merlin",
         hashed_password=viviane_password_hash,
         is_superuser=True,
         oauth_accounts=[],
@@ -243,6 +253,7 @@ def superuser_oauth() -> UserOAuthModel:
 def verified_superuser() -> UserModel:
     return UserModel(
         email="the.real.merlin@camelot.bt",
+        username="therealmerlin",
         hashed_password=viviane_password_hash,
         is_superuser=True,
         is_verified=True,
@@ -253,6 +264,7 @@ def verified_superuser() -> UserModel:
 def verified_superuser_oauth() -> UserOAuthModel:
     return UserOAuthModel(
         email="the.real.merlin@camelot.bt",
+        username="therealmerlin",
         hashed_password=viviane_password_hash,
         is_superuser=True,
         is_verified=True,
@@ -351,6 +363,20 @@ def mock_user_db(
                 return verified_superuser
             return None
 
+        async def get_by_username(self, username: str) -> Optional[UserModel]:
+            lower_username = username.lower()
+            if lower_username == user.username.lower():
+                return user
+            if lower_username == verified_user.username.lower():
+                return verified_user
+            if lower_username == inactive_user.username.lower():
+                return inactive_user
+            if lower_username == superuser.username.lower():
+                return superuser
+            if lower_username == verified_superuser.username.lower():
+                return verified_superuser
+            return None
+
         async def create(self, create_dict: Dict[str, Any]) -> UserModel:
             return UserModel(**create_dict)
 
@@ -400,6 +426,20 @@ def mock_user_db_oauth(
             if lower_email == superuser_oauth.email.lower():
                 return superuser_oauth
             if lower_email == verified_superuser_oauth.email.lower():
+                return verified_superuser_oauth
+            return None
+
+        async def get_by_username(self, username: str) -> Optional[UserOAuthModel]:
+            lower_username = username.lower()
+            if lower_username == user_oauth.username.lower():
+                return user_oauth
+            if lower_username == verified_user_oauth.username.lower():
+                return verified_user_oauth
+            if lower_username == inactive_user_oauth.username.lower():
+                return inactive_user_oauth
+            if lower_username == superuser_oauth.username.lower():
+                return superuser_oauth
+            if lower_username == verified_superuser_oauth.username.lower():
                 return verified_superuser_oauth
             return None
 
@@ -468,6 +508,7 @@ def make_user_manager(mocker: MockerFixture):
     def _make_user_manager(user_manager_class: Type[BaseTestUserManager], mock_user_db):
         user_manager = user_manager_class(mock_user_db)
         mocker.spy(user_manager, "get_by_email")
+        mocker.spy(user_manager, "get_by_username")
         mocker.spy(user_manager, "request_verify")
         mocker.spy(user_manager, "verify")
         mocker.spy(user_manager, "forgot_password")

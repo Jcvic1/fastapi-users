@@ -8,6 +8,7 @@ class UserProtocol(Protocol[ID]):
 
     id: ID
     email: str
+    username: str
     hashed_password: str
     is_active: bool
     is_superuser: bool
@@ -35,6 +36,7 @@ class UserOAuthProtocol(UserProtocol[ID], Generic[ID, OAP]):
 
     id: ID
     email: str
+    username: str
     hashed_password: str
     is_active: bool
     is_superuser: bool

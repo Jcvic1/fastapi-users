@@ -64,10 +64,10 @@ def get_users_router(
                 "content": {
                     "application/json": {
                         "examples": {
-                            ErrorCode.UPDATE_USER_EMAIL_ALREADY_EXISTS: {
-                                "summary": "A user with this email already exists.",
+                            ErrorCode.UPDATE_USER_EMAIL_OR_USERNAME_ALREADY_EXISTS: {
+                                "summary": "A user with this email or username already exists.",
                                 "value": {
-                                    "detail": ErrorCode.UPDATE_USER_EMAIL_ALREADY_EXISTS
+                                    "detail": ErrorCode.UPDATE_USER_EMAIL_OR_USERNAME_ALREADY_EXISTS
                                 },
                             },
                             ErrorCode.UPDATE_USER_INVALID_PASSWORD: {
@@ -108,7 +108,7 @@ def get_users_router(
         except exceptions.UserAlreadyExists:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                detail=ErrorCode.UPDATE_USER_EMAIL_ALREADY_EXISTS,
+                detail=ErrorCode.UPDATE_USER_EMAIL_OR_USERNAME_ALREADY_EXISTS,
             )
 
     @router.get(
@@ -151,10 +151,10 @@ def get_users_router(
                 "content": {
                     "application/json": {
                         "examples": {
-                            ErrorCode.UPDATE_USER_EMAIL_ALREADY_EXISTS: {
-                                "summary": "A user with this email already exists.",
+                            ErrorCode.UPDATE_USER_EMAIL_OR_USERNAME_ALREADY_EXISTS: {
+                                "summary": "A user with this email or username already exists.",
                                 "value": {
-                                    "detail": ErrorCode.UPDATE_USER_EMAIL_ALREADY_EXISTS
+                                    "detail": ErrorCode.UPDATE_USER_EMAIL_OR_USERNAME_ALREADY_EXISTS
                                 },
                             },
                             ErrorCode.UPDATE_USER_INVALID_PASSWORD: {
@@ -195,7 +195,7 @@ def get_users_router(
         except exceptions.UserAlreadyExists:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                detail=ErrorCode.UPDATE_USER_EMAIL_ALREADY_EXISTS,
+                detail=ErrorCode.UPDATE_USER_EMAIL_OR_USERNAME_ALREADY_EXISTS,
             )
 
     @router.delete(
